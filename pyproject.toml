@@ -1,0 +1,13 @@
+[project]
+name = "cs2-market-agent"
+version = "0.1.0"
+description = "agent for monitoring the cs2 skin market and detecting anomalies"
+requires-python = ">=3.13"
+dependencies = []
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
