@@ -1,13 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cs2-market-agent"
 version = "0.1.0"
-description = "agent for monitoring the cs2 skin market and detecting anomalies"
+description = "Agent for monitoring the CS2 skin market and detecting anomalies"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "pydantic-settings>=2.0",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

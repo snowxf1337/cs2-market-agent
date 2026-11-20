@@ -24,8 +24,11 @@ Python 3.13, PostgreSQL, pytest. More tools are added only when needed.
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --group dev
+python -m pip install -e . --group dev
+copy .env.example .env
 ```
+
+Then open `.env` and fill in your PostgreSQL credentials.
 
 ## Running tests
 

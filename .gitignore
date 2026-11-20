@@ -8,3 +8,5 @@ htmlcov/
 *.log
 Thumbs.db
 desktop.ini
+*.egg-info/
+build/
