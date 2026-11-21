@@ -8,6 +8,7 @@ from app.database.models import Item, Marketplace, MarketSnapshot
 
 COLLECTED_AT = datetime(2026, 11, 20, 12, 0, tzinfo=UTC)
 
+DOPPLER = "★ Karambit | Doppler (Factory New)"
 
 def add_item_and_marketplace(session):
     marketplace = Marketplace(code="test_market", name="Test Market")
@@ -71,5 +72,22 @@ def test_snapshot_for_unknown_item_is_rejected(session):
 def test_duplicate_item_name_is_rejected(session):
     add_item_and_marketplace(session)
     session.add(Item(market_hash_name="AK-47 | Redline (Field-Tested)"))
+    with pytest.raises(IntegrityError):
+        session.flush()
+
+
+def test_same_item_with_different_versions_is_allowed(session):
+    session.add_all([
+        Item(market_hash_name=DOPPLER, version="Phase 1"),
+        Item(market_hash_name=DOPPLER, version="Ruby"),
+    ])
+    session.flush()
+
+
+def test_duplicate_item_with_same_version_is_rejected(session):
+    session.add(Item(market_hash_name=DOPPLER, version="Ruby"))
+    session.flush()
+
+    session.add(Item(market_hash_name=DOPPLER, version="Ruby"))
     with pytest.raises(IntegrityError):
         session.flush()

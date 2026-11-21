@@ -35,9 +35,17 @@ class Marketplace(Base):
 
 class Item(Base):
     __tablename__ = "items"
+    __table_args__ = (
+        UniqueConstraint(
+            "market_hash_name",
+            "version",
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    market_hash_name: Mapped[str] = mapped_column(String(255), unique=True)
+    market_hash_name: Mapped[str] = mapped_column(String(255))
+    version: Mapped[str | None] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
