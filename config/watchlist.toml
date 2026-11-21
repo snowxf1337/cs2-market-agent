@@ -1,0 +1,40 @@
+[stickers]
+
+teams = [
+    "00 Nation", "100 Thieves", "3DMAX", "9INE", "9z Team",
+    "AMKAL ESPORTS", "Apeks", "Astralis", "Aurora", "Avangar",
+    "B8", "Bad News Eagles", "BetBoom", "BIG", "Bravado Gaming",
+    "Chinggis Warriors", "Clan-Mystik", "Cloud9", "Cloud9 G2A", "Complexity Gaming",
+    "Copenhagen Flames", "Copenhagen Wolves", "Counter Logic Gaming", "CR4ZY",
+    "dAT team", "DreamEaters",
+    "ECSTATIC", "ENCE", "Entropiq", "Epsilon eSports", "ESC Gaming",
+    "Eternal Fire", "Evil Geniuses",
+    "Falcons", "FaZe Clan", "Flash Gaming", "Flipsid3 Tactics", "Fluxo",
+    "FlyQuest", "Fnatic", "forZe eSports", "FURIA", "FUT",
+    "G2 Esports", "Gaimin Gladiators", "Gambit", "Gambit Esports", "Gambit Gaming",
+    "GamerLegion", "GODSENT", "Grayhound Gaming",
+    "HellRaisers", "Heroic",
+    "iBUYPOWER", "IHC Esports", "Immortals", "Imperial Esports",
+    "INTZ E-SPORTS CLUB", "Into The Breach",
+    "Keyd Stars", "KOI",
+    "Legacy", "LGB eSports", "London Conspiracy", "Luminosity Gaming", "Lynn Vision",
+    "M80", "Metizport", "MIBR", "Misfits Gaming", "Monte", "MOUZ", "mousesports",
+    "Movistar Riders", "MTS GameGod Wolf", "myXMG",
+    "Natus Vincere", "Nemiga", "Ninjas in Pyjamas", "North", "NRG",
+    "OG", "OpTic Gaming", "Outsiders",
+    "paiN Gaming", "PARIVISION", "Passion UA", "PENTA Sports",
+    "Planetkey Dynamics",
+    "Quantum Bellator Fire",
+    "Rare Atom", "Reason Gaming", "RED Canids", "Renegades", "Rogue",
+    "SAW", "Sharks Esports", "SINNERS", "SK Gaming", "Space Soldiers", "Splyce",
+    "Sprout Esports", "Syman Gaming",
+    "Team Dignitas", "Team eBettle", "Team EnVyUs", "Team Immunity", "Team Kinguin",
+    "Team LDLC.com", "Team Liquid", "Team SoloMid", "Team Spirit", "The Huns",
+    "The MongolZ", "THUNDERdOWNUNDER", "Titan", "TSM Kinguin", "TYLOO",
+    "Vega Squadron", "Vexed Gaming", "ViCi Gaming", "Virtus.Pro", "Vitality", "Vox Eminor",
+    "Wildcard", "Winstrike Team",
+]
+
+[items]
+
+names = []
