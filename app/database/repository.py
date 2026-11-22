@@ -88,3 +88,8 @@ def save_snapshots(
 
     session.flush()
     return written
+
+
+def get_known_item_keys(session: Session) -> set[ItemKey]:
+    rows = session.execute(select(Item.market_hash_name, Item.version))
+    return {(row.market_hash_name, row.version) for row in rows}

@@ -51,6 +51,9 @@ def to_market_item(raw: SkinportItem) -> MarketItem:
 
 
 class SkinportProvider:
+    code = "skinport"
+    name = "Skinport"
+    
     def __init__(self, client: httpx.Client):
         self._client = client
 
