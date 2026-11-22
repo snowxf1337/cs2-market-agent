@@ -1,10 +1,12 @@
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session
 
 from app.database.models import Item, Marketplace, MarketSnapshot
 from app.market import MarketItem
+
 
 ItemKey = tuple[str, str | None]
 
@@ -44,7 +46,7 @@ def get_latest_states(session: Session, marketplace_id: int) -> dict[int, tuple]
         )
         .where(MarketSnapshot.marketplace_id == marketplace_id)
         .order_by(MarketSnapshot.item_id, MarketSnapshot.collected_at.desc())
-        .distinct(MarketSnapshot.item_id)
+        .ext(distinct_on(MarketSnapshot.item_id))
     )
     return {
         row.item_id: (row.price_minor, row.listings_count, row.currency)

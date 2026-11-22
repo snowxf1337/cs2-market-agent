@@ -32,3 +32,15 @@ their status is changed to **Fixed**.
 - **Cause:** The API expects a boolean value; the docs example is outdated. The error message is misleading.
 - **Fix:** Omit `tradable` (it defaults to `false`).
 - **Test:** will be covered by the Skinport provider tests (request parameters).
+
+## BUG-002 — Deprecated DISTINCT ON syntax in snapshot repository
+
+- **Status:** Fixed
+- **Found:** 2026-11-22
+- **Description:** `get_latest_states` used `.distinct(column)` to build `DISTINCT ON`.
+- **Steps to reproduce:** run `python -m pytest` with SQLAlchemy 2.1.
+- **Expected:** tests pass without warnings.
+- **Actual:** 11 × `SADeprecationWarning`: passing an expression to `distinct` is deprecated.
+- **Cause:** SQLAlchemy 2.1 moved `DISTINCT ON` to the PostgreSQL dialect extension.
+- **Fix:** use `.ext(distinct_on(...))` from `sqlalchemy.dialects.postgresql`.
+- **Test:** tests/test_repository.py (any test calling `save_snapshots`)
