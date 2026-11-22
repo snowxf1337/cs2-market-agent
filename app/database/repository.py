@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session
 
-from app.database.models import Item, Marketplace, MarketSnapshot
+from app.database.models import Item, Marketplace, MarketSnapshot, CollectionRun
 from app.market import MarketItem
 
 
@@ -97,3 +97,19 @@ def save_snapshots(
 def get_known_item_keys(session: Session) -> set[ItemKey]:
     rows = session.execute(select(Item.market_hash_name, Item.version))
     return {(row.market_hash_name, row.version) for row in rows}
+
+
+def get_successful_run_times(
+    session: Session, marketplace_id: int, start: datetime, end: datetime
+) -> list[datetime]:
+    statement = (
+        select(CollectionRun.started_at)
+        .where(
+            CollectionRun.marketplace_id == marketplace_id,
+            CollectionRun.status == "success",
+            CollectionRun.started_at >= start,
+            CollectionRun.started_at <= end,
+        )
+        .order_by(CollectionRun.started_at)
+    )
+    return list(session.scalars(statement))
