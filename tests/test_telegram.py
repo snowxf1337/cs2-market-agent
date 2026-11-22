@@ -62,3 +62,29 @@ def test_network_error_does_not_leak_token():
 
     assert "FAKE" not in str(error.value)
     assert error.value.__suppress_context__
+
+
+from app.alerts.telegram import create_notifier
+from app.config import Settings
+
+
+def make_settings(**overrides):
+    return Settings(
+        _env_file=None,
+        db_user="user",
+        db_password="secret",
+        db_name="db",
+        db_test_name="db_test",
+        **overrides,
+    )
+
+
+def test_no_notifier_when_telegram_is_not_configured():
+    assert create_notifier(make_settings()) is None
+
+
+def test_notifier_is_created_when_configured():
+    notifier = create_notifier(
+        make_settings(telegram_bot_token="123:FAKE", telegram_chat_id=42)
+    )
+    assert isinstance(notifier, TelegramNotifier)

@@ -1,9 +1,11 @@
 import httpx
 from pydantic import SecretStr
+from app.config import Settings
 
 API_URL = "https://api.telegram.org"
 MAX_MESSAGE_LENGTH = 4096
 
+settings = Settings()
 
 class NotificationError(Exception):
     pass
@@ -26,3 +28,18 @@ class TelegramNotifier:
             raise NotificationError(
                 f"Telegram returned HTTP {response.status_code}: {response.text[:200]}"
             )
+
+def create_notifier(settings: Settings) -> TelegramNotifier | None:
+    if settings.telegram_bot_token is None or settings.telegram_chat_id is None:
+        return None
+    return TelegramNotifier(
+        httpx.Client(), settings.telegram_bot_token, settings.telegram_chat_id
+    )
+
+
+if __name__ == "__main__":
+    notifier = create_notifier(Settings())
+    if notifier is None:
+        raise SystemExit("Telegram is not configured: set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env")
+    notifier.send("CS2 Market Agent: test message")
+    print("Sent")
