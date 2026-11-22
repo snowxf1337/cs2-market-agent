@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     db_password: SecretStr
     db_name: str
     db_test_name: str
+    telegram_bot_token: SecretStr | None = None
+    telegram_chat_id: int | None = None
 
     def database_url(self, test: bool = False) -> URL:
         return URL.create(

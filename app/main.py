@@ -20,6 +20,7 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     engine = create_engine(Settings().database_url())
     session_factory = sessionmaker(engine)
     watchlist = load_watchlist(WATCHLIST_PATH)
