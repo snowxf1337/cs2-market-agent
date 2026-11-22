@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.database.models import Item, Marketplace, MarketSnapshot
+from app.database.models import CollectionRun, Item, Marketplace, MarketSnapshot
 
 COLLECTED_AT = datetime(2026, 11, 20, 12, 0, tzinfo=UTC)
 
@@ -89,5 +89,55 @@ def test_duplicate_item_with_same_version_is_rejected(session):
     session.flush()
 
     session.add(Item(market_hash_name=DOPPLER, version="Ruby"))
+    with pytest.raises(IntegrityError):
+        session.flush()
+
+
+def make_run(marketplace, **overrides):
+    values = {
+        "marketplace_id": marketplace.id,
+        "started_at": COLLECTED_AT,
+        "finished_at": COLLECTED_AT,
+        "status": "success",
+        "items_seen": 37303,
+        "items_tracked": 2780,
+        "items_skipped": 0,
+        "snapshots_written": 120,
+        "error": None,
+    }
+    values.update(overrides)
+    return CollectionRun(**values)
+
+
+def test_collection_run_is_saved(session):
+    _, marketplace = add_item_and_marketplace(session)
+    session.add(make_run(marketplace))
+    session.flush()
+    session.expire_all()
+
+    run = session.scalars(select(CollectionRun)).one()
+    assert run.status == "success"
+    assert run.snapshots_written == 120
+
+
+def test_failed_run_can_have_unknown_counts(session):
+    _, marketplace = add_item_and_marketplace(session)
+    session.add(
+        make_run(
+            marketplace,
+            status="failed",
+            items_seen=None,
+            items_tracked=None,
+            items_skipped=None,
+            snapshots_written=None,
+            error="Skinport request timed out",
+        )
+    )
+    session.flush()
+
+
+def test_invalid_run_status_is_rejected(session):
+    _, marketplace = add_item_and_marketplace(session)
+    session.add(make_run(marketplace, status="sucess"))
     with pytest.raises(IntegrityError):
         session.flush()

@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     MetaData,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -68,3 +69,24 @@ class MarketSnapshot(Base):
     currency: Mapped[str] = mapped_column(String(3))
     listings_count: Mapped[int | None]
     volume: Mapped[int | None]
+
+
+class CollectionRun(Base):
+    __tablename__ = "collection_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('success', 'failed', 'rate_limited')",
+            name="status_valid",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    marketplace_id: Mapped[int] = mapped_column(ForeignKey("marketplaces.id"))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(20))
+    items_seen: Mapped[int | None]
+    items_tracked: Mapped[int | None]
+    items_skipped: Mapped[int | None]
+    snapshots_written: Mapped[int | None]
+    error: Mapped[str | None] = mapped_column(Text)
