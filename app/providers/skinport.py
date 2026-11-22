@@ -2,9 +2,14 @@ from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import urlparse
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
-from app.market import MarketItem, normalize_name
+from app.market import FetchResult, MarketItem, normalize_name
+from app.providers.errors import (
+    ProviderResponseError,
+    ProviderUnavailableError,
+    RateLimitedError,
+)
 
 BASE_URL = "https://api.skinport.com"
 ITEMS_PATH = "/v1/items"
@@ -49,14 +54,45 @@ class SkinportProvider:
     def __init__(self, client: httpx.Client):
         self._client = client
 
-    def fetch_items(self, currency: str = "EUR") -> list[MarketItem]:
-        response = self._client.get(
-            ITEMS_PATH,
-            params={"app_id": CS2_APP_ID, "currency": currency},
-            headers={"Accept-Encoding": "br"},
-        )
-        response.raise_for_status()
-        return [to_market_item(SkinportItem.model_validate(raw)) for raw in response.json()]
+    def fetch_items(self, currency: str = "EUR") -> FetchResult:
+        try:
+            response = self._client.get(
+                ITEMS_PATH,
+                params={"app_id": CS2_APP_ID, "currency": currency},
+                headers={"Accept-Encoding": "br"},
+            )
+        except httpx.TimeoutException as error:
+            raise ProviderUnavailableError("Skinport request timed out") from error
+        except httpx.TransportError as error:
+            raise ProviderUnavailableError(f"Skinport is unreachable: {error}") from error
+
+        if response.status_code == 429:
+            raise RateLimitedError("Skinport rate limit exceeded")
+        if response.status_code >= 500:
+            raise ProviderUnavailableError(f"Skinport server error {response.status_code}")
+        if response.status_code != 200:
+            raise ProviderResponseError(
+                f"Unexpected status {response.status_code}: {response.text[:200]}"
+            )
+
+        try:
+            payload = response.json()
+        except ValueError as error:
+            raise ProviderResponseError("Skinport returned invalid JSON") from error
+        if not isinstance(payload, list):
+            raise ProviderResponseError("Expected a list of items from Skinport")
+
+        items = []
+        skipped = 0
+        for raw in payload:
+            try:
+                items.append(to_market_item(SkinportItem.model_validate(raw)))
+            except ValidationError:
+                skipped += 1
+
+        if payload and not items:
+            raise ProviderResponseError("All items failed validation, the format may have changed")
+        return FetchResult(items=items, skipped=skipped)
 
 
 def create_client() -> httpx.Client:

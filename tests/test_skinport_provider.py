@@ -1,8 +1,12 @@
 import httpx
 import pytest
-from pydantic import ValidationError
 
 from app.market import MarketItem
+from app.providers.errors import (
+    ProviderResponseError,
+    ProviderUnavailableError,
+    RateLimitedError,
+)
 from app.providers.skinport import (
     BASE_URL,
     SkinportProvider,
@@ -26,6 +30,7 @@ REAL_ITEM = {
     "created_at": 1575431471,
     "updated_at": 1795278013,
 }
+BROKEN_ITEM = {key: value for key, value in REAL_ITEM.items() if key != "quantity"}
 
 
 def make_provider(handler):
@@ -33,24 +38,28 @@ def make_provider(handler):
     return SkinportProvider(client)
 
 
-def respond_with(payload, status_code=200):
+def respond_with(payload=None, status_code=200, content=None):
     requests = []
 
     def handler(request):
         requests.append(request)
+        if content is not None:
+            return httpx.Response(status_code, content=content)
         return httpx.Response(status_code, json=payload)
 
     return handler, requests
 
 
+def raise_error(error_class):
+    def handler(request):
+        raise error_class("simulated failure", request=request)
+
+    return handler
+
+
 @pytest.mark.parametrize(
     ("price", "expected"),
-    [
-        (11.33, 1133),
-        (0.29, 29),
-        (10, 1000),
-        (None, None),
-    ],
+    [(11.33, 1133), (0.29, 29), (10, 1000), (None, None)],
 )
 def test_to_minor_units(price, expected):
     assert to_minor_units(price) == expected
@@ -70,9 +79,10 @@ def test_category_from_market_page(market_page, expected):
 
 def test_fetch_items_converts_real_response():
     handler, _ = respond_with([REAL_ITEM])
-    items = make_provider(handler).fetch_items()
+    result = make_provider(handler).fetch_items()
 
-    assert items == [
+    assert result.skipped == 0
+    assert result.items == [
         MarketItem(
             market_hash_name="AK-47 | Baroque Purple (Well-Worn)",
             version=None,
@@ -98,7 +108,7 @@ def test_fetch_items_sends_expected_request():
 
 def test_out_of_stock_item_has_no_price_and_zero_quantity():
     handler, _ = respond_with([{**REAL_ITEM, "min_price": None, "quantity": 0}])
-    item = make_provider(handler).fetch_items()[0]
+    item = make_provider(handler).fetch_items().items[0]
 
     assert item.min_price_minor is None
     assert item.quantity == 0
@@ -107,21 +117,58 @@ def test_out_of_stock_item_has_no_price_and_zero_quantity():
 def test_item_name_whitespace_is_normalized():
     raw = {**REAL_ITEM, "market_hash_name": "Sticker | Ninjas in Pyjamas  | Cologne 2014"}
     handler, _ = respond_with([raw])
-    item = make_provider(handler).fetch_items()[0]
+    item = make_provider(handler).fetch_items().items[0]
 
     assert item.market_hash_name == "Sticker | Ninjas in Pyjamas | Cologne 2014"
 
 
-def test_unexpected_response_format_raises_validation_error():
-    broken = {key: value for key, value in REAL_ITEM.items() if key != "quantity"}
-    handler, _ = respond_with([broken])
+def test_invalid_item_is_skipped_and_counted():
+    handler, _ = respond_with([REAL_ITEM, BROKEN_ITEM])
+    result = make_provider(handler).fetch_items()
 
-    with pytest.raises(ValidationError):
+    assert len(result.items) == 1
+    assert result.skipped == 1
+
+
+def test_all_items_invalid_raises_response_error():
+    handler, _ = respond_with([BROKEN_ITEM, BROKEN_ITEM])
+    with pytest.raises(ProviderResponseError):
         make_provider(handler).fetch_items()
 
 
-def test_server_error_raises_http_status_error():
-    handler, _ = respond_with({"errors": []}, status_code=500)
+def test_rate_limit_raises_rate_limited_error():
+    handler, _ = respond_with({"errors": [{"id": "rate_limit_exceeded"}]}, status_code=429)
+    with pytest.raises(RateLimitedError):
+        make_provider(handler).fetch_items()
 
-    with pytest.raises(httpx.HTTPStatusError):
+
+@pytest.mark.parametrize("status_code", [500, 503])
+def test_server_error_raises_unavailable_error(status_code):
+    handler, _ = respond_with({"errors": []}, status_code=status_code)
+    with pytest.raises(ProviderUnavailableError):
+        make_provider(handler).fetch_items()
+
+
+@pytest.mark.parametrize("status_code", [400, 404, 406])
+def test_unexpected_client_error_raises_response_error(status_code):
+    handler, _ = respond_with({"errors": []}, status_code=status_code)
+    with pytest.raises(ProviderResponseError):
+        make_provider(handler).fetch_items()
+
+
+@pytest.mark.parametrize("error_class", [httpx.ReadTimeout, httpx.ConnectError])
+def test_network_failure_raises_unavailable_error(error_class):
+    with pytest.raises(ProviderUnavailableError):
+        make_provider(raise_error(error_class)).fetch_items()
+
+
+def test_invalid_json_raises_response_error():
+    handler, _ = respond_with(content=b"<html>not json</html>")
+    with pytest.raises(ProviderResponseError):
+        make_provider(handler).fetch_items()
+
+
+def test_non_list_payload_raises_response_error():
+    handler, _ = respond_with({"items": []})
+    with pytest.raises(ProviderResponseError):
         make_provider(handler).fetch_items()

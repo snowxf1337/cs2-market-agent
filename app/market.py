@@ -13,3 +13,9 @@ class MarketItem:
     currency: str
     min_price_minor: int | None
     quantity: int
+
+
+@dataclass(frozen=True)
+class FetchResult:
+    items: list[MarketItem]
+    skipped: int = 0
