@@ -48,6 +48,9 @@ class HealthMonitor:
             )
             self._alerted = True
 
+    def announce(self, text: str) -> None:
+        self._send(text)
+
     def _send(self, text: str) -> None:
         try:
             self._notify(text)

@@ -70,3 +70,9 @@ def test_notification_error_does_not_break_collection():
     monitor = HealthMonitor(broken_notify)
     for _ in range(3):
         monitor.record("failed")
+
+
+def test_announce_sends_text():
+    monitor, sent, _ = make_monitor()
+    monitor.announce("Collector started")
+    assert sent == ["Collector started"]

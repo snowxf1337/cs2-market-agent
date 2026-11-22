@@ -4,6 +4,8 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.alerts.health import HealthMonitor
+from app.alerts.telegram import create_notifier
 from app.collectors.collector import run_once
 from app.collectors.scheduler import run_forever
 from app.config import Settings
@@ -21,10 +23,17 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    engine = create_engine(Settings().database_url())
+    settings = Settings()
+    engine = create_engine(settings.database_url())
     session_factory = sessionmaker(engine)
     watchlist = load_watchlist(WATCHLIST_PATH)
     provider = SkinportProvider(create_client())
+    notifier = create_notifier(settings)
+    if notifier is None:
+        logger.info("Telegram is not configured: alerts are disabled")
+        monitor = HealthMonitor(lambda text: None)
+    else:
+        monitor = HealthMonitor(notifier.send)
 
     def collect() -> str:
         with session_factory() as session:
@@ -32,6 +41,7 @@ def main() -> None:
                 run = run_once(session, provider, watchlist)
             except Exception:
                 session.rollback()
+                monitor.record("crashed")
                 raise
             logger.info(
                 "Run finished: status=%s seen=%s tracked=%s skipped=%s written=%s error=%s",
@@ -42,9 +52,11 @@ def main() -> None:
                 run.snapshots_written,
                 run.error,
             )
+            monitor.record(run.status)
             return run.status
 
     logger.info("Collector started: %d teams in watchlist", len(watchlist.teams))
+    monitor.announce(f"Collector started: {len(watchlist.teams)} teams in watchlist")
     try:
         run_forever(collect)
     except KeyboardInterrupt:
