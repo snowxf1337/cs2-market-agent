@@ -3,7 +3,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.market import MarketItem
+from app.market import MarketItem, normalize_name
 
 MAJORS = frozenset({
     "Katowice 2014", "Cologne 2014", "DreamHack 2014",
@@ -21,9 +21,6 @@ SKIN_MIN_PRICE_MINOR = 500
 SKIN_MAX_PRICE_MINOR = 30_000
 SKIN_MAX_QUANTITY = 10
 
-
-def normalize_name(name: str) -> str:
-    return " ".join(name.split())
 
 
 def sticker_team(name: str) -> str | None:
