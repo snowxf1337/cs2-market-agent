@@ -36,7 +36,9 @@ def get_item_ids(session: Session, keys: set[ItemKey]) -> dict[ItemKey, int]:
     return item_ids
 
 
-def get_latest_states(session: Session, marketplace_id: int) -> dict[int, tuple]:
+def get_latest_states(
+    session: Session, marketplace_id: int, at: datetime | None = None
+) -> dict[int, tuple]:
     statement = (
         select(
             MarketSnapshot.item_id,
@@ -48,6 +50,8 @@ def get_latest_states(session: Session, marketplace_id: int) -> dict[int, tuple]
         .order_by(MarketSnapshot.item_id, MarketSnapshot.collected_at.desc())
         .ext(distinct_on(MarketSnapshot.item_id))
     )
+    if at is not None:
+        statement = statement.where(MarketSnapshot.collected_at <= at)
     return {
         row.item_id: (row.price_minor, row.listings_count, row.currency)
         for row in session.execute(statement)
